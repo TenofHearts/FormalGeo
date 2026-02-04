@@ -31,15 +31,15 @@ def parse_equal_predicate(s, make_vars=False):
     Parse s to a Tree, return the tree and all attr.
     >> parse_equal_predicate('Equal(LengthOfLine(AB),LengthOfLine(CD))')
     (('Equal', (('LengthOfLine', ('A', 'B')), ('LengthOfLine', ('C', 'D')))),
-     [('LengthOfLine', ('A', 'B')), ('LengthOfLine', ('C', 'D'))])
+    [('LengthOfLine', ('A', 'B')), ('LengthOfLine', ('C', 'D'))])
     >> parse_equal_predicate('Equal(LengthOfLine(OA),LengthOfLine(OB))', True)
     (('Equal', (('LengthOfLine', ('o', 'a')), ('LengthOfLine', ('o', 'b')))),
-     [('LengthOfLine', ('o', 'a')), ('LengthOfLine', ('o', 'b'))])
+    [('LengthOfLine', ('o', 'a')), ('LengthOfLine', ('o', 'b'))])
     >> parse_equal_predicate('Equal(Add(LengthOfLine(OA),x+1),y+2)', True)
     (('Equal', (('Add', (('LengthOfLine', ('o', 'a')), 'x+1')), 'y+2')),
-     [('LengthOfLine', ('o', 'a'))])
+    [('LengthOfLine', ('o', 'a'))])
     """
-    s = s[6:len(s) - 1]
+    s = s[6 : len(s) - 1]
     count = 0
     m = 0
     for i in range(len(s)):
@@ -56,7 +56,7 @@ def parse_equal_predicate(s, make_vars=False):
         raise Exception(e_msg)
 
     left = s[0:m]
-    right = s[m + 1:len(s)]
+    right = s[m + 1 : len(s)]
     attrs = []
     if left[0].isupper():
         left, l_attrs = parse_equal_to_tree(left, make_vars)
@@ -90,14 +90,14 @@ def parse_equal_to_tree(s, make_vars=False):
 
         elif s[j] == ",":
             if i < j:
-                stack.append(s[i: j])
+                stack.append(s[i:j])
                 i = j + 1
             else:
                 i = i + 1
 
         elif s[j] == ")":
             if i < j:
-                stack.append(s[i: j])
+                stack.append(s[i:j])
                 i = j + 1
             else:
                 i = i + 1
@@ -110,7 +110,9 @@ def parse_equal_to_tree(s, make_vars=False):
             if predicate in operation:  # not attribution
                 stack.append((predicate, tuple(paras[::-1])))
             else:  # attribution
-                paras = tuple("".join(paras[::-1]).lower() if make_vars else "".join(paras[::-1]))
+                paras = tuple(
+                    "".join(paras[::-1]).lower() if make_vars else "".join(paras[::-1])
+                )
                 stack.append((predicate, paras))
                 attrs.append((predicate, paras))
 
@@ -188,7 +190,7 @@ def get_expr_from_tree(problem, tree, replaced=False, letters=None):
         elif tree[0] == "Div":
             return expr_left / expr_right
         elif tree[0] == "Pow":
-            return expr_left ** expr_right
+            return expr_left**expr_right
         else:
             return expr_left % expr_right
     elif tree[0] in ["Sin", "Cos", "Tan", "Sqrt"]:
