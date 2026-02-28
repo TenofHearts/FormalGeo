@@ -10,17 +10,31 @@ class Condition:
         self.fix_length_predicates = None  # <list> of <str>
         self.variable_length_predicates = None  # <list> of <str>
 
-        self.items = []  # <list> of <tuple>, [(predicate, item, premise, theorem, step)]
-        self.items_group = {}  # <dict>, [predicate: [item]], such as {'Angle':[('A', 'B', 'C')]}
+        self.items = (
+            []
+        )  # <list> of <tuple>, [(predicate, item, premise, theorem, step)]
+        self.items_group = (
+            {}
+        )  # <dict>, [predicate: [item]], such as {'Angle':[('A', 'B', 'C')]}
 
-        self.id_of_item = {}  # <dict>, {(predicate, item): id}, such as {('Angle', ('A', 'B', 'C')): 0}
-        self.ids_of_predicate = {}  # <dict>, {predicate: [id]}, such as {'Angle': [0, 1, 2]}
+        self.id_of_item = (
+            {}
+        )  # <dict>, {(predicate, item): id}, such as {('Angle', ('A', 'B', 'C')): 0}
+        self.ids_of_predicate = (
+            {}
+        )  # <dict>, {predicate: [id]}, such as {'Angle': [0, 1, 2]}
         self.ids_of_step = {}  # <dict>, {step: [id]}, such as {0: [0, 1, 2]}
 
-        self.sym_of_attr = {}  # <dict>, {(attr, paras): sym}, such as {('LengthOfLine', ('A', 'B')): l_ab}
-        self.attr_of_sym = {}  # <dict>, {sym: (attr, (paras))}, such as {l_ab: ('LengthOfLine', (('A', 'B'),))}
+        self.sym_of_attr = (
+            {}
+        )  # <dict>, {(attr, paras): sym}, such as {('LengthOfLine', ('A', 'B')): l_ab}
+        self.attr_of_sym = (
+            {}
+        )  # <dict>, {sym: (attr, (paras))}, such as {l_ab: ('LengthOfLine', (('A', 'B'),))}
         self.value_of_sym = {}  # <dict>, {sym: value}, such as {l_ab: 3}
-        self.simplified_equation = {}  # <dict>, {simplified_equation: premises}, such as {a + b - 2: [1, 2, 3]}
+        self.simplified_equation = (
+            {}
+        )  # <dict>, {simplified_equation: premises}, such as {a + b - 2: [1, 2, 3]}
         self.eq_solved = True  # <bool>, record whether the equation is solved
 
     def init_by_fl(self, fix_length_predicates, variable_length_predicates):
@@ -44,7 +58,9 @@ class Condition:
         self.id_count = condition.id_count
         self.step_count = condition.step_count
         self.fix_length_predicates = copy.deepcopy(condition.fix_length_predicates)
-        self.variable_length_predicates = copy.deepcopy(condition.variable_length_predicates)
+        self.variable_length_predicates = copy.deepcopy(
+            condition.variable_length_predicates
+        )
         self.items = copy.deepcopy(condition.items)
         self.items_group = copy.deepcopy(condition.items_group)
         self.id_of_item = copy.deepcopy(condition.id_of_item)
@@ -68,7 +84,15 @@ class Condition:
         """
 
         if not self.has(predicate, item):
-            self.items.append((predicate, item, tuple(sorted(list(set(premise)))), theorem, self.step_count))
+            self.items.append(
+                (
+                    predicate,
+                    item,
+                    tuple(sorted(list(set(premise)))),
+                    theorem,
+                    self.step_count,
+                )
+            )
             self.items_group[predicate].append(item)
             self.ids_of_predicate[predicate].append(self.id_count)
             self.ids_of_step[self.step_count].append(self.id_count)
@@ -94,7 +118,10 @@ class Condition:
         :return exist: <bool>, indicate whether the addition was successful.
         """
         if predicate == "Equation":
-            return item in self.items_group["Equation"] or -item in self.items_group["Equation"]
+            return (
+                item in self.items_group["Equation"]
+                or -item in self.items_group["Equation"]
+            )
         else:
             return item in self.items_group[predicate]
 
@@ -137,8 +164,12 @@ class Goal:
     def __init__(self):
         """Goal of one problem."""
         self.type = None  # <str>, such as: 'algebra', 'logic'.
-        self.item = None  # <equation> or predicate, such as: a - b, 'ParallelBetweenLine'
-        self.answer = None  # <number> or <tuple> of <str>, such as: 0, ('A', 'B', 'C', 'D')
+        self.item = (
+            None  # <equation> or predicate, such as: a - b, 'ParallelBetweenLine'
+        )
+        self.answer = (
+            None  # <number> or <tuple> of <str>, such as: 0, ('A', 'B', 'C', 'D')
+        )
         self.solved = False  # <bool>
         self.solved_answer = None  # <number>, only used in 'algebra' and 'equal'
         self.premise = None  # <tuple> of <int>
@@ -146,6 +177,9 @@ class Goal:
 
     def init_by_fl(self, problem, goal_CDL):
         """Initial goal by formal language."""
+        if not goal_CDL or "type" not in goal_CDL:
+            # No goal specified (open-exploration mode); leave all fields as None
+            return
         if goal_CDL["type"] == "value":
             self.type = "algebra"
             self.item = get_expr_from_tree(problem, goal_CDL["item"][1])

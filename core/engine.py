@@ -12,8 +12,9 @@ class EquationKiller:
     accurate_mode = False  # whether to use accurate mode
     solve_rank_deficient_eqs = False  # whether to solve rank deficient equations
     use_cache = False  # whether to use cache to store solved target equations
-    cache_eqs = None  # <dict>, {tuple(str(eqs),): [(sym_str, value)]}
-    cache_target = None  # <dict>, {tuple(str(eqs),): value}
+    cache_eqs = {}  # <dict>, {tuple(str(eqs),): [(sym_str, value)]}
+    cache_target = {}  # <dict>, {tuple(str(eqs),): value}
+    cache_timeouts = set()  # <set>, {tuple(str(eqs),)}
 
     @staticmethod
     def get_minimum_target_equations(target_expr, eqs):
@@ -58,7 +59,9 @@ class EquationKiller:
                 elif len(related_eqs[i].free_symbols - mini_syms) == added_eq_n1:
                     if len(related_eqs[i].free_symbols) > added_eq_n2:
                         added_eq_id = i
-                        added_eq_n1 = len(related_eqs[added_eq_id].free_symbols - mini_syms)
+                        added_eq_n1 = len(
+                            related_eqs[added_eq_id].free_symbols - mini_syms
+                        )
                         added_eq_n2 = len(related_eqs[added_eq_id].free_symbols)
 
             added_eq = related_eqs[added_eq_id]
@@ -120,12 +123,16 @@ class EquationKiller:
                 for i in range(1, len(related_eqs)):
                     if len(related_eqs[i].free_symbols - mini_syms) < added_eq_n1:
                         added_eq_id = i
-                        added_eq_n1 = len(related_eqs[added_eq_id].free_symbols - mini_syms)
+                        added_eq_n1 = len(
+                            related_eqs[added_eq_id].free_symbols - mini_syms
+                        )
                         added_eq_n2 = len(related_eqs[added_eq_id].free_symbols)
                     elif len(related_eqs[i].free_symbols - mini_syms) == added_eq_n1:
                         if len(related_eqs[i].free_symbols) > added_eq_n2:
                             added_eq_id = i
-                            added_eq_n1 = len(related_eqs[added_eq_id].free_symbols - mini_syms)
+                            added_eq_n1 = len(
+                                related_eqs[added_eq_id].free_symbols - mini_syms
+                            )
                             added_eq_n2 = len(related_eqs[added_eq_id].free_symbols)
 
                 added_eq = related_eqs[added_eq_id]
@@ -192,7 +199,11 @@ class EquationKiller:
             remove_lists = set()  # equation to be deleted
             add_lists = []  # equation to be added
 
-            for eq in problem.condition.simplified_equation:  # solve eq that only one sym unsolved
+            for (
+                eq
+            ) in (
+                problem.condition.simplified_equation
+            ):  # solve eq that only one sym unsolved
                 if len(eq.free_symbols) != 1:
                     continue
 
@@ -204,8 +215,11 @@ class EquationKiller:
                     warnings.warn(msg)
                 else:
                     if target_sym in result:
-                        problem.set_value_of_sym(target_sym, result[target_sym],
-                                                 tuple(problem.condition.simplified_equation[eq]))
+                        problem.set_value_of_sym(
+                            target_sym,
+                            result[target_sym],
+                            tuple(problem.condition.simplified_equation[eq]),
+                        )
                         remove_lists |= {eq}
 
             for eq in problem.condition.simplified_equation:  # value replace
@@ -219,18 +233,25 @@ class EquationKiller:
                         continue
                     simplified = True  # replace sym with value when the value known
                     eq = eq.subs(sym, problem.condition.value_of_sym[sym])
-                    added_premise.append(problem.condition.get_id_by_predicate_and_item(
-                        "Equation", sym - problem.condition.value_of_sym[sym]))
+                    added_premise.append(
+                        problem.condition.get_id_by_predicate_and_item(
+                            "Equation", sym - problem.condition.value_of_sym[sym]
+                        )
+                    )
                     remove_lists |= {raw_eq}
 
                 if not simplified:
                     continue
 
-                if len(eq.free_symbols) == 0:  # no need to add new simplified equation when it's all sym known
+                if (
+                    len(eq.free_symbols) == 0
+                ):  # no need to add new simplified equation when it's all sym known
                     continue
                 else:  # add new simplified equation
                     update = True
-                    premise = problem.condition.simplified_equation[raw_eq] + added_premise
+                    premise = (
+                        problem.condition.simplified_equation[raw_eq] + added_premise
+                    )
                     add_lists.append((eq, premise))
 
             for remove_eq in remove_lists:  # remove useless equation
@@ -241,16 +262,18 @@ class EquationKiller:
     @staticmethod
     @func_set_timeout(2)
     def simplification_sym_replace(equations, target_sym):
-        """ High level simplify based on symbol replacement."""
+        """High level simplify based on symbol replacement."""
         update = True
         while update:
             update = False
             for i in range(len(equations)):
                 eq = equations[i]
 
-                if target_sym in eq.free_symbols or \
-                        len(eq.free_symbols) != 2 or \
-                        len(eq.atoms()) > 5:  # too many atoms, no need to replace
+                if (
+                    target_sym in eq.free_symbols
+                    or len(eq.free_symbols) != 2
+                    or len(eq.atoms()) > 5
+                ):  # too many atoms, no need to replace
                     continue
 
                 try:
@@ -304,18 +327,26 @@ class EquationKiller:
 
             if isinstance(solved, list):
                 update = True
-                while update and len(solved) > 1:  # choose min but > 0, when has multi result
+                while (
+                    update and len(solved) > 1
+                ):  # choose min but > 0, when has multi result
                     update = False
                     for sym in solved[0]:
                         if sym not in solved[1]:
                             solved.pop(1)
                             update = True
                             break
-                        if len(solved[0][sym].free_symbols) != 0 and len(solved[1][sym].free_symbols) == 0:
+                        if (
+                            len(solved[0][sym].free_symbols) != 0
+                            and len(solved[1][sym].free_symbols) == 0
+                        ):
                             solved.pop(0)
                             update = True
                             break
-                        if len(solved[0][sym].free_symbols) == 0 and len(solved[1][sym].free_symbols) != 0:
+                        if (
+                            len(solved[0][sym].free_symbols) == 0
+                            and len(solved[1][sym].free_symbols) != 0
+                        ):
                             solved.pop(1)
                             update = True
                             break
@@ -367,13 +398,17 @@ class EquationKiller:
             return
 
         try:
-            EquationKiller.simplification_value_replace(problem)  # simplify equations before solving
+            EquationKiller.simplification_value_replace(
+                problem
+            )  # simplify equations before solving
         except FunctionTimedOut:
             msg = "Timeout when simplify equations by value replace."
             warnings.warn(msg)
 
-        mini_eqs_lists, n_m = EquationKiller.get_minimum_group_equations(  # get mini equations
-            list(problem.condition.simplified_equation)
+        mini_eqs_lists, n_m = (
+            EquationKiller.get_minimum_group_equations(  # get mini equations
+                list(problem.condition.simplified_equation)
+            )
         )
 
         for i in range(len(mini_eqs_lists)):
@@ -402,11 +437,19 @@ class EquationKiller:
             solved_results = None
             mini_eqs = None
 
+            if (
+                EquationKiller.use_cache
+                and eqs_for_cache in EquationKiller.cache_timeouts
+            ):
+                continue
+
             try:
                 results = EquationKiller.solve(mini_eqs_lists[i])  # solve equations
             except FunctionTimedOut:
                 msg = "Timeout when solve equations: {}".format(mini_eqs_lists[i])
                 warnings.warn(msg)
+                if EquationKiller.use_cache:
+                    EquationKiller.cache_timeouts.add(eqs_for_cache)
             else:
                 for sym in results:
                     if problem.condition.value_of_sym[sym] is None:
@@ -427,7 +470,9 @@ class EquationKiller:
                         try_eqs = copy.copy(sym_mini_eqs)
                         try_eqs.remove(removed_eq)
                         try:
-                            results = EquationKiller.solve(try_eqs, sym)  # solve equations
+                            results = EquationKiller.solve(
+                                try_eqs, sym
+                            )  # solve equations
                         except FunctionTimedOut:
                             msg = "Timeout when solve equations: {}".format(try_eqs)
                             warnings.warn(msg)
@@ -441,7 +486,9 @@ class EquationKiller:
                     problem.set_value_of_sym(sym, solved_results[sym], premise)
 
                     if EquationKiller.use_cache:
-                        EquationKiller.cache_eqs[eqs_for_cache].append((str(sym), solved_results[sym]))
+                        EquationKiller.cache_eqs[eqs_for_cache].append(
+                            (str(sym), solved_results[sym])
+                        )
 
             else:
                 premise = []
@@ -453,7 +500,9 @@ class EquationKiller:
 
                 if EquationKiller.use_cache:
                     for sym in solved_results:
-                        EquationKiller.cache_eqs[eqs_for_cache].append((str(sym), solved_results[sym]))
+                        EquationKiller.cache_eqs[eqs_for_cache].append(
+                            (str(sym), solved_results[sym])
+                        )
 
     @staticmethod
     def solve_target(target_expr, problem):
@@ -465,13 +514,21 @@ class EquationKiller:
         if target_expr is None:
             return None, []
 
-        if target_expr in problem.condition.get_items_by_predicate("Equation"):  # no need to solve
-            return 0, [problem.condition.get_id_by_predicate_and_item("Equation", target_expr)]
+        if target_expr in problem.condition.get_items_by_predicate(
+            "Equation"
+        ):  # no need to solve
+            return 0, [
+                problem.condition.get_id_by_predicate_and_item("Equation", target_expr)
+            ]
         if -target_expr in problem.condition.get_items_by_predicate("Equation"):
-            return 0, [problem.condition.get_id_by_predicate_and_item("Equation", -target_expr)]
+            return 0, [
+                problem.condition.get_id_by_predicate_and_item("Equation", -target_expr)
+            ]
 
         try:
-            EquationKiller.simplification_value_replace(problem)  # simplify equations before solving
+            EquationKiller.simplification_value_replace(
+                problem
+            )  # simplify equations before solving
         except FunctionTimedOut:
             msg = "Timeout when simplify equations by value replace."
             warnings.warn(msg)
@@ -480,14 +537,18 @@ class EquationKiller:
         for sym in target_expr.free_symbols:  # solve only using value replacement
             if problem.condition.value_of_sym[sym] is not None:
                 target_expr = target_expr.subs(sym, problem.condition.value_of_sym[sym])
-                premise.append(problem.condition.get_id_by_predicate_and_item(
-                    "Equation", sym - problem.condition.value_of_sym[sym]))
+                premise.append(
+                    problem.condition.get_id_by_predicate_and_item(
+                        "Equation", sym - problem.condition.value_of_sym[sym]
+                    )
+                )
         if len(target_expr.free_symbols) == 0:
             return target_expr, premise
 
-        target_sym, mini_eqs, n_m = EquationKiller.get_minimum_target_equations(  # get mini equations
-            target_expr,
-            list(problem.condition.simplified_equation)
+        target_sym, mini_eqs, n_m = (
+            EquationKiller.get_minimum_target_equations(  # get mini equations
+                target_expr, list(problem.condition.simplified_equation)
+            )
         )
 
         if len(mini_eqs) == 0:  # no mini equations, can't solve
@@ -515,7 +576,7 @@ class EquationKiller:
         while tail - head > 1:
             solved = False
             p = int((head + tail) / 2)
-            try_mini_eqs = copy.copy(mini_eqs[0:p + 1])
+            try_mini_eqs = copy.copy(mini_eqs[0 : p + 1])
 
             if EquationKiller.sym_simplify:
                 try:
@@ -524,15 +585,24 @@ class EquationKiller:
                     msg = "Timeout when simplify equations by sym replace."
                     warnings.warn(msg)
 
+            if (
+                EquationKiller.use_cache
+                and eqs_for_cache in EquationKiller.cache_timeouts
+            ):
+                head = p
+                continue
+
             try:
                 results = EquationKiller.solve(try_mini_eqs)  # solve equations
             except FunctionTimedOut:
                 msg = "Timeout when solve equations: {}".format(try_mini_eqs)
                 warnings.warn(msg)
+                if EquationKiller.use_cache and eqs_for_cache is not None:
+                    EquationKiller.cache_timeouts.add(eqs_for_cache)
             else:
                 if target_sym in results:
                     solved = True
-                    solved_mini_eqs = copy.copy(mini_eqs[0:p + 1])
+                    solved_mini_eqs = copy.copy(mini_eqs[0 : p + 1])
                     solved_target_value = results[target_sym]
 
             if solved:
@@ -552,16 +622,22 @@ class EquationKiller:
 
                 if EquationKiller.sym_simplify:
                     try:
-                        EquationKiller.simplification_sym_replace(try_mini_eqs, target_sym)
+                        EquationKiller.simplification_sym_replace(
+                            try_mini_eqs, target_sym
+                        )
                     except FunctionTimedOut:
                         msg = "Timeout when simplify equations by sym replace."
                         warnings.warn(msg)
 
                 try:
-                    results = EquationKiller.solve(try_mini_eqs, target_sym)  # solve equations
+                    results = EquationKiller.solve(
+                        try_mini_eqs, target_sym
+                    )  # solve equations
                 except FunctionTimedOut:
                     msg = "Timeout when solve equations: {}".format(try_mini_eqs)
                     warnings.warn(msg)
+                    if EquationKiller.use_cache and eqs_for_cache is not None:
+                        EquationKiller.cache_timeouts.add(eqs_for_cache)
                 else:
                     if target_sym in results:
                         solved_mini_eqs.remove(removed_eq)
@@ -573,16 +649,25 @@ class EquationKiller:
         value_added = False
         if len(eq.free_symbols) == 1:
             try:
-                results = EquationKiller.solve(eq, list(eq.free_symbols)[0])  # solve equations
+                results = EquationKiller.solve(
+                    eq, list(eq.free_symbols)[0]
+                )  # solve equations
             except FunctionTimedOut:
-                msg = "Timeout when solve equations: {}".format(target_expr - solved_target_value)
+                msg = "Timeout when solve equations: {}".format(
+                    target_expr - solved_target_value
+                )
                 warnings.warn(msg)
             else:
                 for sym in results:
                     problem.set_value_of_sym(sym, results[sym], premise)
                     value_added = True
         if not value_added:
-            problem.condition.add("Equation", target_expr - solved_target_value, premise, ("solve_eq", None, None))
+            problem.condition.add(
+                "Equation",
+                target_expr - solved_target_value,
+                premise,
+                ("solve_eq", None, None),
+            )
 
         if EquationKiller.use_cache:
             EquationKiller.cache_target[eqs_for_cache] = solved_target_value
@@ -616,7 +701,9 @@ class GeometryPredicateLogicExecutor:
         products = gpl["products"]
         logic_constraints = gpl["logic_constraints"]
 
-        r_ids, r_items = problem.condition.get_ids_and_items_by_predicate_and_variable(products[0][0], products[0][1])
+        r_ids, r_items = problem.condition.get_ids_and_items_by_predicate_and_variable(
+            products[0][0], products[0][1]
+        )
         r_vars = products[0][1]
         for i in range(len(r_items)):  # delete duplicated vars and corresponding item
             r_items[i] = list(r_items[i])
@@ -632,7 +719,8 @@ class GeometryPredicateLogicExecutor:
 
         for i in range(1, len(products)):
             r_ids, r_items, r_vars = GeometryPredicateLogicExecutor.product(
-                (r_ids, r_items, r_vars), products[i], problem)
+                (r_ids, r_items, r_vars), products[i], problem
+            )
 
         if letters is not None:  # select result according to letters
             for i in range(len(r_ids))[::-1]:
@@ -647,7 +735,8 @@ class GeometryPredicateLogicExecutor:
 
         for i in range(len(logic_constraints)):
             r_ids, r_items, r_vars = GeometryPredicateLogicExecutor.constraint_logic(
-                (r_ids, r_items, r_vars), logic_constraints[i], problem)
+                (r_ids, r_items, r_vars), logic_constraints[i], problem
+            )
 
         if letters is not None:  # select result according to letters
             for i in range(len(r_ids))[::-1]:
@@ -678,7 +767,8 @@ class GeometryPredicateLogicExecutor:
 
         for i in range(len(algebra_constraints)):
             r_ids, r_items, r_vars = GeometryPredicateLogicExecutor.constraint_algebra(
-                (r_ids, r_items, r_vars), algebra_constraints[i], problem)
+                (r_ids, r_items, r_vars), algebra_constraints[i], problem
+            )
 
         return r_ids, r_items, r_vars
 
@@ -729,12 +819,19 @@ class GeometryPredicateLogicExecutor:
         r1_ids, r1_items, r1_vars = r1
         if len(r1_ids) == 0:
             return [], [], r1_vars
-        r2_ids, r2_items = problem.condition.get_ids_and_items_by_predicate_and_variable(r2_logic[0], r2_logic[1])
+        r2_ids, r2_items = (
+            problem.condition.get_ids_and_items_by_predicate_and_variable(
+                r2_logic[0], r2_logic[1]
+            )
+        )
         r2_vars = r2_logic[1]
 
         inter = list(set(r1_vars) & set(r2_vars))  # intersection
         for i in range(len(inter)):
-            inter[i] = (r1_vars.index(inter[i]), r2_vars.index(inter[i]))  # change to index
+            inter[i] = (
+                r1_vars.index(inter[i]),
+                r2_vars.index(inter[i]),
+            )  # change to index
 
         difference = list(set(r2_vars) - set(r1_vars))  # difference
         for i in range(len(difference)):
@@ -753,7 +850,9 @@ class GeometryPredicateLogicExecutor:
                 r2_data = r2_items[j]
                 passed = True
                 for r1_i, r2_i in inter:
-                    if r1_data[r1_i] != r2_data[r2_i]:  # the corresponding points are inconsistent.
+                    if (
+                        r1_data[r1_i] != r2_data[r2_i]
+                    ):  # the corresponding points are inconsistent.
                         passed = False
                         break
                 if passed:
@@ -800,7 +899,9 @@ class GeometryPredicateLogicExecutor:
             for i in range(len(r1_items)):
                 r2_item = tuple(r1_items[i][j] for j in index)
                 if r2_item in problem.condition.get_items_by_predicate(r2_logic[0]):
-                    r2_id = problem.condition.get_id_by_predicate_and_item(r2_logic[0], r2_item)
+                    r2_id = problem.condition.get_id_by_predicate_and_item(
+                        r2_logic[0], r2_item
+                    )
                     r_ids.append(tuple(set(list(r1_ids[i]) + [r2_id])))
                     r_items.append(r1_items[i])
         else:  # &~
@@ -856,7 +957,9 @@ class GeometryPredicateLogicExecutor:
                     msg = "Timeout when solve target: {}".format(str(eq))
                     warnings.warn(msg)
                 else:
-                    if result is not None and rough_equal(result, 0):  # meet constraints
+                    if result is not None and rough_equal(
+                        result, 0
+                    ):  # meet constraints
                         r_id = tuple(set(premise + list(r1_ids[i])))
                         r_ids.append(r_id)
                         r_items.append(r1_items[i])

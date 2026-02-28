@@ -12,7 +12,7 @@ def parse_geo_predicate(s, make_vars=False):
     >> parse_geo_predicate('Predicate(ABC, DE)', True)
     ('Predicate', ['a', 'b', 'c', 'd', 'e'], [3, 2])
     """
-    predicate_name, para = s.split("(")
+    predicate_name, para = s.split("(", 1)
     para = para.replace(")", "")
     if make_vars:
         para = para.lower()

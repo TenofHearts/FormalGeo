@@ -1,67 +1,80 @@
-from formalgeo.parse.basic import parse_geo_predicate, parse_equal_predicate, parse_equal_to_tree
+from formalgeo.parse.basic import (
+    parse_geo_predicate,
+    parse_equal_predicate,
+    parse_equal_to_tree,
+)
 
 
 def parse_problem_cdl(problem_CDL):
     """parse problem_CDL to logic form."""
+    goal_cdl = problem_CDL.get("goal_cdl", "") or ""
     parsed_CDL = {
         "id": problem_CDL["problem_id"],
         "cdl": {
             "construction_cdl": problem_CDL["construction_cdl"],
             "text_cdl": problem_CDL["text_cdl"],
-            "image_cdl": problem_CDL["image_cdl"],
-            "goal_cdl": problem_CDL["goal_cdl"]
+            "image_cdl": problem_CDL.get("image_cdl", []),
+            "goal_cdl": goal_cdl,
         },
         "parsed_cdl": {
             "construction_cdl": [],
             "text_and_image_cdl": [],
             "goal": {},
-        }
+        },
     }
     for fl in problem_CDL["construction_cdl"]:
         predicate, para = fl.split("(")
         para = para.replace(")", "")
         if predicate == "Shape":
-            parsed_CDL["parsed_cdl"]["construction_cdl"].append([predicate, para.split(",")])
+            parsed_CDL["parsed_cdl"]["construction_cdl"].append(
+                [predicate, para.split(",")]
+            )
         elif predicate == "Collinear":
             parsed_CDL["parsed_cdl"]["construction_cdl"].append([predicate, list(para)])
         elif predicate == "Cocircular":
-            parsed_CDL["parsed_cdl"]["construction_cdl"].append([predicate, list(para.replace(",", ""))])
+            parsed_CDL["parsed_cdl"]["construction_cdl"].append(
+                [predicate, list(para.replace(",", ""))]
+            )
         else:
-            e_msg = "The predicate <{}> should not appear in construction_cdl.".format(predicate)
+            e_msg = "The predicate <{}> should not appear in construction_cdl.".format(
+                predicate
+            )
             raise Exception(e_msg)
 
-    for fl in problem_CDL["text_cdl"] + problem_CDL["image_cdl"]:
+    for fl in problem_CDL["text_cdl"] + problem_CDL.get("image_cdl", []):
         if fl.startswith("Equal"):
             parsed_equal, _ = parse_equal_predicate(fl)
             parsed_CDL["parsed_cdl"]["text_and_image_cdl"].append(parsed_equal)
         elif fl.startswith("Equation"):
             fl = fl.replace("Equation(", "")
-            fl = fl[0:len(fl) - 1]
+            fl = fl[0 : len(fl) - 1]
             parsed_CDL["parsed_cdl"]["text_and_image_cdl"].append(("Equation", fl))
         else:
             predicate, para, _ = parse_geo_predicate(fl)
             parsed_CDL["parsed_cdl"]["text_and_image_cdl"].append([predicate, para])
 
-    if problem_CDL["goal_cdl"].startswith("Value"):
+    if goal_cdl.startswith("Value"):
         parsed_CDL["parsed_cdl"]["goal"]["type"] = "value"
-        parsed_goal = problem_CDL["goal_cdl"][6:len(problem_CDL["goal_cdl"]) - 1]
+        parsed_goal = goal_cdl[6 : len(goal_cdl) - 1]
         if parsed_goal[0].isupper():
             parsed_goal, _ = parse_equal_to_tree(parsed_goal)
             parsed_CDL["parsed_cdl"]["goal"]["item"] = ("Value", parsed_goal)
         else:
             parsed_CDL["parsed_cdl"]["goal"]["item"] = ("Value", parsed_goal)
-        parsed_CDL["parsed_cdl"]["goal"]["answer"] = problem_CDL["problem_answer"]
-    elif problem_CDL["goal_cdl"].startswith("Equal"):
+        parsed_CDL["parsed_cdl"]["goal"]["answer"] = problem_CDL.get(
+            "problem_answer", "?"
+        )
+    elif goal_cdl.startswith("Equal"):
         parsed_CDL["parsed_cdl"]["goal"]["type"] = "equal"
-        parsed_goal, _ = parse_equal_predicate(problem_CDL["goal_cdl"])
+        parsed_goal, _ = parse_equal_predicate(goal_cdl)
         parsed_CDL["parsed_cdl"]["goal"]["item"] = parsed_goal
         parsed_CDL["parsed_cdl"]["goal"]["answer"] = "0"
-    elif problem_CDL["goal_cdl"].startswith("Relation"):
+    elif goal_cdl.startswith("Relation"):
         parsed_CDL["parsed_cdl"]["goal"]["type"] = "logic"
-        predicate, para, _ = parse_geo_predicate(
-            problem_CDL["goal_cdl"].split("(", 1)[1])
+        predicate, para, _ = parse_geo_predicate(goal_cdl.split("(", 1)[1])
         parsed_CDL["parsed_cdl"]["goal"]["item"] = predicate
         parsed_CDL["parsed_cdl"]["goal"]["answer"] = para
+    # else: no goal (open exploration) — leave parsed_cdl["goal"] as {}
 
     return parsed_CDL
 

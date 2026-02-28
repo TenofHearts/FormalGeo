@@ -1,5 +1,9 @@
 from sympy import Float
-from formalgeo.parse import inverse_parse_one, inverse_parse_logic_to_cdl, inverse_parse_one_theorem
+from formalgeo.parse import (
+    inverse_parse_one,
+    inverse_parse_logic_to_cdl,
+    inverse_parse_one_theorem,
+)
 from graphviz import Digraph
 import os
 import random
@@ -13,8 +17,16 @@ def simple_show(problem, timing):
     solved_answer = problem.goal.solved_answer
 
     solved = "\033[32msolved\033[0m\t" if solved else "\033[31munsolved\033[0m\t"
-    timing = "{:.6f}".format(timing) if timing < 2 else "\033[31m{:.6f}\033[0m".format(timing)
-    print("{}\t{}\t{}\t{}\t{}".format(pid, str(correct_answer), solved, solved_answer, timing))
+    timing = (
+        "{:.6f}".format(timing)
+        if timing < 2
+        else "\033[31m{:.6f}\033[0m".format(timing)
+    )
+    print(
+        "{}\t{}\t{}\t{}\t{}".format(
+            pid, str(correct_answer), solved, solved_answer, timing
+        )
+    )
 
 
 def show_solution(problem):
@@ -57,7 +69,7 @@ def show_solution(problem):
         print(predicate + ":")
 
         if predicate in basic_predicates and len(items) > 20:
-            items = items[0:10] + ["..."] + items[len(items) - 10:]
+            items = items[0:10] + ["..."] + items[len(items) - 10 :]
 
         for item in items:
             if isinstance(item, str):
@@ -65,45 +77,81 @@ def show_solution(problem):
                 continue
             _id = problem.condition.get_id_by_predicate_and_item(predicate, item)
             if len(problem.condition.items[_id][2]) <= 3:
-                premises = "(" + ",".join([str(i) for i in problem.condition.items[_id][2]]) + ")"
+                premises = (
+                    "("
+                    + ",".join([str(i) for i in problem.condition.items[_id][2]])
+                    + ")"
+                )
             else:
-                premises = "(" + ",".join([str(i) for i in problem.condition.items[_id][2][0:3]]) + ",...)"
-            theorem = inverse_parse_one_theorem(problem.condition.items[_id][3], problem.parsed_theorem_GDL)
+                premises = (
+                    "("
+                    + ",".join([str(i) for i in problem.condition.items[_id][2][0:3]])
+                    + ",...)"
+                )
+            theorem = inverse_parse_one_theorem(
+                problem.condition.items[_id][3], problem.parsed_theorem_GDL
+            )
             item = inverse_parse_one(predicate, item, problem, True)
             if len(item) > 35:
                 item = item[0:35] + "..."
             if _id not in used_pid:
                 print("{0:^6}{1:^50}{2:^25}{3:^6}".format(_id, item, premises, theorem))
             else:
-                print("\033[35m{0:^6}{1:^50}{2:^25}{3:^6}\033[0m".format(_id, item, premises, theorem))
+                print(
+                    "\033[35m{0:^6}{1:^50}{2:^25}{3:^6}\033[0m".format(
+                        _id, item, premises, theorem
+                    )
+                )
     print()
 
     print("\033[33mSymbols and Value:\033[0m")
     for attr in problem.condition.sym_of_attr:
         sym = problem.condition.sym_of_attr[attr]
         if isinstance(problem.condition.value_of_sym[sym], Float):
-            print("{0:^70}{1:^15}{2:^20.3f}".format(
-                "{}({})".format(attr[0], "".join(attr[1])), str(sym), problem.condition.value_of_sym[sym]))
+            print(
+                "{0:^70}{1:^15}{2:^20.3f}".format(
+                    "{}({})".format(attr[0], "".join(attr[1])),
+                    str(sym),
+                    problem.condition.value_of_sym[sym],
+                )
+            )
         else:
-            print("{0:^70}{1:^15}{2:^20}".format(
-                "{}({})".format(attr[0], "".join(attr[1])), str(sym), str(problem.condition.value_of_sym[sym])))
+            print(
+                "{0:^70}{1:^15}{2:^20}".format(
+                    "{}({})".format(attr[0], "".join(attr[1])),
+                    str(sym),
+                    str(problem.condition.value_of_sym[sym]),
+                )
+            )
 
     print("\033[33mEquations:\033[0m")
     items = problem.condition.get_items_by_predicate("Equation")
     for item in items:
         _id = problem.condition.get_id_by_predicate_and_item("Equation", item)
         if len(problem.condition.items[_id][2]) <= 3:
-            premises = "(" + ",".join([str(i) for i in problem.condition.items[_id][2]]) + ")"
+            premises = (
+                "(" + ",".join([str(i) for i in problem.condition.items[_id][2]]) + ")"
+            )
         else:
-            premises = "(" + ",".join([str(i) for i in problem.condition.items[_id][2][0:3]]) + ",...)"
-        theorem = inverse_parse_one_theorem(problem.condition.items[_id][3], problem.parsed_theorem_GDL)
+            premises = (
+                "("
+                + ",".join([str(i) for i in problem.condition.items[_id][2][0:3]])
+                + ",...)"
+            )
+        theorem = inverse_parse_one_theorem(
+            problem.condition.items[_id][3], problem.parsed_theorem_GDL
+        )
         item = str(item).replace(" ", "")
         if len(item) > 40:
             item = item[0:40] + "..."
         if _id not in used_pid:
             print("{0:^6}{1:^60}{2:^25}{3:>6}".format(_id, item, premises, theorem))
         else:
-            print("\033[35m{0:^6}{1:^60}{2:^25}{3:>6}\033[0m".format(_id, item, premises, theorem))
+            print(
+                "\033[35m{0:^6}{1:^60}{2:^25}{3:>6}\033[0m".format(
+                    _id, item, premises, theorem
+                )
+            )
     print()
 
     # goal
@@ -119,20 +167,34 @@ def show_solution(problem):
         print("solved_answer: {}".format(str(problem.goal.solved_answer)))
         if not isinstance(problem.goal.solved_answer, tuple):
             try:
-                print("solved_answer(float): {}".format(float(problem.goal.solved_answer)))
+                print(
+                    "solved_answer(float): {}".format(float(problem.goal.solved_answer))
+                )
             except TypeError:
                 print("solved_answer(float): <Cannot convert to float>")
     if problem.goal.premise is not None:
         print("premise: {}".format(str(problem.goal.premise)))
-        print("theorem: {}".format(inverse_parse_one_theorem(problem.goal.theorem, problem.parsed_theorem_GDL)))
+        print(
+            "theorem: {}".format(
+                inverse_parse_one_theorem(
+                    problem.goal.theorem, problem.parsed_theorem_GDL
+                )
+            )
+        )
     print()
 
     print("\033[34mTiming:\033[0m")
     time_sum = 0
     for step in problem.timing:
-        theorem = inverse_parse_one_theorem(problem.timing[step][0], problem.parsed_theorem_GDL)
+        theorem = inverse_parse_one_theorem(
+            problem.timing[step][0], problem.parsed_theorem_GDL
+        )
         if step in used_step:
-            print("\033[35m{:^2} {} {:.6f}s\033[0m".format(step, theorem, problem.timing[step][1]))
+            print(
+                "\033[35m{:^2} {} {:.6f}s\033[0m".format(
+                    step, theorem, problem.timing[step][1]
+                )
+            )
         else:
             print("{:^2} {} {:.6f}s".format(step, theorem, problem.timing[step][1]))
         time_sum += problem.timing[step][1]
@@ -144,7 +206,11 @@ def get_used(problem):
     if not problem.goal.solved:
         return [], [], []
 
-    skip_theorems = {("solve_eq", None, None), ("extended", None, None), ("prerequisite", None, None)}
+    skip_theorems = {
+        ("solve_eq", None, None),
+        ("extended", None, None),
+        ("prerequisite", None, None),
+    }
     used_pid = set(problem.goal.premise)
     last_used_pid = set(problem.goal.premise)
     used_step = set()
@@ -160,18 +226,24 @@ def get_used(problem):
 
     if problem.goal.type == "algebra":
         eq = problem.goal.item - problem.goal.answer
-        if eq in problem.condition.get_items_by_predicate("Equation"):  # target in condition set
+        if eq in problem.condition.get_items_by_predicate(
+            "Equation"
+        ):  # target in condition set
             _id = problem.condition.get_id_by_predicate_and_item("Equation", eq)
             if problem.condition.items[_id][3] not in skip_theorems:
                 used_step |= {problem.condition.items[_id][4]}
     else:
-        _id = problem.condition.get_id_by_predicate_and_item(problem.goal.item, problem.goal.answer)
+        _id = problem.condition.get_id_by_predicate_and_item(
+            problem.goal.item, problem.goal.answer
+        )
         if problem.condition.items[_id][3] not in skip_theorems:
             used_step |= {problem.condition.items[_id][4]}
 
     used_theorems = []
     for step in problem.timing:
-        theorem = inverse_parse_one_theorem(problem.timing[step][0], problem.parsed_theorem_GDL)
+        theorem = inverse_parse_one_theorem(
+            problem.timing[step][0], problem.parsed_theorem_GDL
+        )
         if step in used_step:
             used_theorems.append(theorem)
 
@@ -197,9 +269,10 @@ def get_meta_hypertree(problem):
         predicate, item, premise, theorem, _ = problem.condition.items[node_id]
         theorem = inverse_parse_one_theorem(theorem, problem.parsed_theorem_GDL)
 
-        if (predicate in problem.parsed_predicate_GDL["Preset"]["Construction"] or
-            predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]) and \
-                theorem == "extended":
+        if (
+            predicate in problem.parsed_predicate_GDL["Preset"]["Construction"]
+            or predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]
+        ) and theorem == "extended":
             continue  # skip construction cdl extending process
 
         cdl[node_id] = inverse_parse_one(predicate, item, problem)
@@ -215,17 +288,25 @@ def get_meta_hypertree(problem):
     if problem.goal.solved:
         if problem.goal.type == "algebra":
             eq = problem.goal.item - problem.goal.answer
-            if eq not in problem.condition.get_items_by_predicate("Equation"):  # target not in condition set
+            if eq not in problem.condition.get_items_by_predicate(
+                "Equation"
+            ):  # target not in condition set
                 node_id = problem.condition.id_count
                 cdl[node_id] = "Equation" + "(" + str(eq).replace(" ", "") + ")"
-                theorem = inverse_parse_one_theorem(problem.goal.theorem, problem.parsed_theorem_GDL)
+                theorem = inverse_parse_one_theorem(
+                    problem.goal.theorem, problem.parsed_theorem_GDL
+                )
                 group[(problem.goal.premise, theorem)] = [node_id]
                 target_node_id = node_id
             else:
-                target_node_id = problem.condition.get_id_by_predicate_and_item("Equation", eq)
+                target_node_id = problem.condition.get_id_by_predicate_and_item(
+                    "Equation", eq
+                )
 
         else:
-            target_node_id = problem.condition.get_id_by_predicate_and_item(problem.goal.item, problem.goal.answer)
+            target_node_id = problem.condition.get_id_by_predicate_and_item(
+                problem.goal.item, problem.goal.answer
+            )
 
     edges = {-2: "none", -1: "self"}
     tree = {}
@@ -236,8 +317,10 @@ def get_meta_hypertree(problem):
         new_premise = []
         for node_id in premise:
             predicate, _, premise, theorem, _ = problem.condition.items[node_id]
-            if (predicate in problem.parsed_predicate_GDL["Preset"]["Construction"] or
-                    predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]):
+            if (
+                predicate in problem.parsed_predicate_GDL["Preset"]["Construction"]
+                or predicate in problem.parsed_predicate_GDL["Preset"]["BasicEntity"]
+            ):
                 while theorem[0] != "prerequisite":
                     node_id = premise[0]
                     _, _, premise, theorem, _ = problem.condition.items[node_id]
@@ -266,14 +349,14 @@ def get_solution_hypertree(problem):
         parsed_tree[len(parsed_tree) + 1] = {
             "conditions": conditions,
             "theorem": theorem,
-            "conclusions": conclusions
+            "conclusions": conclusions,
         }
 
     hypertree = {
         "nodes": list(nodes.values()),
         "free_nodes": [nodes[node_id] for node_id in free_nodes],
         "target_node": nodes[target_node_id] if target_node_id is not None else "None",
-        "tree": parsed_tree
+        "tree": parsed_tree,
     }
     return hypertree
 
@@ -370,12 +453,12 @@ def draw_theorem_dag(problem, file_path_and_name):
     for head in dag:
         if head not in nodes:
             nodes.append(head)
-            dot.node(str(nodes.index(head)), head, shape='box')
+            dot.node(str(nodes.index(head)), head, shape="box")
 
         for tail in dag[head]:
             if tail not in nodes:
                 nodes.append(tail)
-                dot.node(str(nodes.index(tail)), tail, shape='box')
+                dot.node(str(nodes.index(tail)), tail, shape="box")
 
             dot.edge(str(nodes.index(head)), str(nodes.index(tail)))
 
